@@ -1,0 +1,136 @@
+'Stock market analyst
+
+Sub StockData():
+
+' Define variables
+Dim WorksheetName As String
+Dim tickerSymbol As String
+Dim SummaryRow As Integer
+Dim PercentageChange As Single
+Dim YearlyChange As Double
+
+'run script on every worksheet
+For Each ws In Worksheets
+WorkshhetName = ws.Name
+
+'find the last row for the sticks(columnA) and tickerSymbol(column9)
+LastRow = ws.Cells(Rows.Count, 1).End(xlUp).Row
+LastTickerRow = ws.Cells(Rows.Count, 9).End(xlUp).Row
+
+'first search start at colum2 because column A are titles.
+SummaryRow = 2
+FirstDate = 2
+
+'Create the column titles
+ws.Range("I1") = "Ticker"
+ws.Range("J1") = "YearlyChange"
+ws.Range("k1") = "PercentageChange"
+ws.Range("l1") = "TotalStockVolume"
+ws.Range("O2") = "Greatest % Increase"
+ws.Range("O3") = "Greatest % Decrease"
+ws.Range("O4") = "Greatest total volume"
+ws.Range("P1") = "Ticker"
+ws.Range("Q1") = "Value"
+
+' Below section will loop through all the stocks for one year for each run and take "Ticker symbole","YearlyChange", "PercentageChange" and "Total volume".
+
+For I = 2 To LastRow
+
+    'conditional formatting that will find "Ticker symbole","YearlyChange".
+    
+    If ws.Cells(I + 1, 1).Value <> ws.Cells(I, 1) Then
+        tickerSymbol = ws.Cells(I, 1).Value
+        ws.Cells(SummaryRow, 9).Value = tickerSymbol
+        YearlyChange = ClosePrice - OpenPrice
+        ws.Cells(SummaryRow, 10).Value = YearlyChange
+        
+            ' conditional formatting that will highlight "YearlyChange" column: positive change in green and negative change in red.
+            If (YearlyChange > 0) Then
+                ws.Cells(SummaryRow, 10).Interior.ColorIndex = 4
+            Else
+                ws.Cells(SummaryRow, 10).Interior.ColorIndex = 3
+            End If
+
+        'conditional formatting that will eliminate the PercentageChange "#DIV/0! error" causing by some ticker with 0 open price. Also calculate the "PercentageChange". The "Open price & Close price"calculation are at the different section.
+            If OpenPrice = 0 Then
+                
+                PercentageChange = 0
+            
+            Else
+                PercentageChange = YearlyChange / OpenPrice
+                
+            End If
+        ws.Cells(SummaryRow, 11).Value = PercentageChange
+        
+        'calculate the total volume and put it in the correct cell.
+        TotalVolume = Total + ws.Cells(I, 7).Value
+        ws.Cells(SummaryRow, 12).Value = TotalVolume
+        
+        'start the next row for the next tickerSymbol.
+        SummaryRow = SummaryRow + 1
+        
+        'find the start date for the next tickerSymbol.
+        FirstDate = I + 1
+
+        'zero out volume to start a fresh total volume calculation for the next tickerSymbol.
+        Total = 0
+        
+    'Below section will loop through all the stocks with the same tickerSymbol (columnA) to calculate total volume sales. Also, find "Open date & close date"(Not all tickers have the same openDate) in order to calculate the "Open Price" and "Close price".
+    Else
+            Total = ws.Cells(I, 7).Value + Total
+            OpenDate = ws.Cells(FirstDate, 2).Value
+            If ws.Cells(I + 1, 2).Value > OpenDate Then
+                ClosePrice = ws.Cells(I + 1, 6).Value
+                OpenPrice = ws.Cells(FirstDate, 3).Value
+            Else
+                ClosePrice = ws.Cells(FirstDate, 6).Value
+                OpenPrice = ws.Cells(I + 1, 3).Value
+                
+            End If
+            
+    End If
+
+'CHALLENGES part of instructions
+'Below loop will return the tickerSymbol with the "Greatest % increase", "Greatest % Decrease" and "Greatest total volume".
+Next I
+        LastTickerRow = ws.Cells(Rows.Count, 9).End(xlUp).Row
+        MaxChange = 0
+        MinChange = 0
+        MaxVolume = 0
+    
+    'Loop through PercentageChange column to find "Greatest % increase", "Greatest % Decrease"
+    For J = 1 To LastTickerRow
+        If ws.Cells(J + 1, 11).Value > MaxChange Then
+                MaxChange = ws.Cells(J + 1, 11).Value
+                MaxChangeTicker = ws.Cells(J + 1, 9).Value
+        ElseIf ws.Cells(J + 1, 11).Value < MinChange Then
+                MinChange = ws.Cells(J + 1, 11).Value
+               MinChangeTicker = ws.Cells(J + 1, 9).Value
+        End If
+        
+        'find "Greatest total volume"
+        If ws.Cells(J + 1, 12).Value > MaxVolume Then
+                MaxVolume = ws.Cells(J + 1, 12).Value
+                MaxVolumeTicker = ws.Cells(J + 1, 9).Value
+        End If
+      
+    Next J
+
+        'Return the "Greatest % increase", "Greatest % Decrease" and "Greatest total volume" in the appropriate cells.
+        ws.Cells(2, 17).Value = MaxChange
+        ws.Cells(2, 16).Value = MaxChangeTicker
+        ws.Cells(3, 17).Value = MinChange
+        ws.Cells(3, 16).Value = MinChangeTicker
+        ws.Cells(4, 17).Value = MaxVolume
+        ws.Cells(4, 16).Value = MaxVolumeTicker
+    
+'Clean the formatting of some columns.
+ws.Columns("A:Q").AutoFit
+ws.Range("K:K").NumberFormat = "0.00%"
+ws.Range("Q2").NumberFormat = "0.00%"
+ws.Range("Q3").NumberFormat = "0.00%"
+ws.Range("L:L").NumberFormat = "#,##"
+ 
+ Next ws
+ MsgBox ("Completed")
+End Sub
